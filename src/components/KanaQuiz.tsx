@@ -24,7 +24,7 @@ function getReleaseDelayMs(kana: string) {
   }
 
   if (kana === "い" || kana === "ん") {
-    return 1100;
+    return 1400;
   }
 
   return 650;

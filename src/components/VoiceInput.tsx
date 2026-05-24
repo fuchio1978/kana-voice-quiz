@@ -32,6 +32,13 @@ export function VoiceInput({
   const [lastErrorCode, setLastErrorCode] = useState<string | null>(null);
   const isSupported = useMemo(() => getSpeechRecognitionAvailability(), []);
   const stopTimeoutRef = useRef<number | null>(null);
+  const isIPhone = useMemo(() => {
+    if (typeof navigator === "undefined") {
+      return false;
+    }
+
+    return /iPhone/i.test(navigator.userAgent);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -112,7 +119,7 @@ export function VoiceInput({
     stopTimeoutRef.current = window.setTimeout(() => {
       session.stop({ manual: true });
       stopTimeoutRef.current = null;
-    }, releaseDelayMs);
+    }, isIPhone ? Math.max(releaseDelayMs, 1200) : releaseDelayMs);
   };
 
   const handlePressStart = () => {
@@ -130,6 +137,15 @@ export function VoiceInput({
 
   const handlePressEnd = () => {
     handleStop();
+  };
+
+  const handleIPhoneToggle = () => {
+    if (isListening) {
+      handleStop();
+      return;
+    }
+
+    handlePressStart();
   };
 
   const helperMessage = !isSupported
@@ -151,35 +167,65 @@ export function VoiceInput({
       <button
         className={`primary-button hold-button ${isListening ? "holding" : ""}`}
         type="button"
-        onPointerDown={handlePressStart}
-        onPointerUp={handlePressEnd}
-        onPointerLeave={handlePressEnd}
-        onPointerCancel={handlePressEnd}
+        onClick={isIPhone ? handleIPhoneToggle : undefined}
+        onPointerDown={!isIPhone ? handlePressStart : undefined}
+        onPointerUp={!isIPhone ? handlePressEnd : undefined}
+        onPointerLeave={!isIPhone ? handlePressEnd : undefined}
+        onPointerCancel={!isIPhone ? handlePressEnd : undefined}
+        onTouchStart={
+          !isIPhone
+            ? (event) => {
+                event.preventDefault();
+                handlePressStart();
+              }
+            : undefined
+        }
+        onTouchEnd={
+          !isIPhone
+            ? (event) => {
+                event.preventDefault();
+                handlePressEnd();
+              }
+            : undefined
+        }
         onKeyDown={(event) => {
           if ((event.key === " " || event.key === "Enter") && !event.repeat) {
             event.preventDefault();
-            handlePressStart();
+            if (isIPhone) {
+              handleIPhoneToggle();
+            } else {
+              handlePressStart();
+            }
           }
         }}
         onKeyUp={(event) => {
-          if (event.key === " " || event.key === "Enter") {
+          if (!isIPhone && (event.key === " " || event.key === "Enter")) {
             event.preventDefault();
             handlePressEnd();
           }
         }}
         disabled={!isSupported}
       >
-        {isListening ? "はなすと おわるよ…" : "おしている あいだ きいてもらう"}
+        {isIPhone
+          ? isListening
+            ? "もういちど おすと おわるよ"
+            : "おすと ききはじめる"
+          : isListening
+            ? "はなすと おわるよ…"
+            : "おしている あいだ きいてもらう"}
       </button>
       <p className="support-text">
         {isSupported
-          ? "ボタンを おしている あいだだけ きくよ。はなしたら けっかを みるよ。"
+          ? isIPhone
+            ? "iPhoneでは 1かい おすと ききはじめて、もういちど おすと けっかを みるよ。"
+            : "ボタンを おしている あいだだけ きくよ。はなしたら けっかを みるよ。"
           : helperMessage}
       </p>
       <div className="transcript-box">
         <span className="transcript-label">きこえた おと</span>
         <strong>{lastTranscript || "まだ きいていないよ"}</strong>
       </div>
+      {lastErrorCode ? <p className="debug-text">状態: {lastErrorCode}</p> : null}
       {errorMessage ? <p className="gentle-alert">{errorMessage}</p> : null}
     </section>
   );
