@@ -14,7 +14,7 @@ export function KanaDisplay({
   return (
     <section className="kana-display">
       <div className={`kana-mark ${showCorrectMark ? "visible" : ""}`}>○</div>
-      <div className="kana-character" aria-label={`もじ ${kana}`}>
+      <div className="kana-character textbook-kana" aria-label={`もじ ${kana}`}>
         {kana}
       </div>
       {praiseMessage ? <p className="praise-message">{praiseMessage}</p> : null}

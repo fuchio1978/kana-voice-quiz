@@ -18,6 +18,18 @@ type KanaQuizProps = {
 
 const praiseMessages = ["せいかい！", "すごい！", "よくできたね！"];
 
+function getReleaseDelayMs(kana: string) {
+  if (kana === "わ") {
+    return 900;
+  }
+
+  if (kana === "い" || kana === "ん") {
+    return 1100;
+  }
+
+  return 650;
+}
+
 function shuffleKana(entries: KanaEntry[], count: number) {
   const cloned = [...entries];
   for (let i = cloned.length - 1; i > 0; i -= 1) {
@@ -190,7 +202,7 @@ export function KanaQuiz({ kanaPool, questionCount, onFinish }: KanaQuizProps) {
         <div className="quiz-primary-column">
           <VoiceInput
             expectedPhrases={getAcceptedCandidates(currentEntry)}
-            releaseDelayMs={currentEntry.kana === "わ" ? 900 : 650}
+            releaseDelayMs={getReleaseDelayMs(currentEntry.kana)}
             onResult={handleVoiceResult}
             onError={setRecognitionError}
             lastTranscript={lastTranscript}

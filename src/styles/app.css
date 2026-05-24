@@ -127,6 +127,17 @@ button {
   padding-top: 0.08em;
 }
 
+.textbook-kana {
+  font-family:
+    "UD Digi Kyokasho N-R",
+    "Yu Kyokasho Yoko",
+    "BIZ UDPGothic",
+    "Hiragino Maru Gothic ProN",
+    "Yu Gothic",
+    "Meiryo",
+    sans-serif;
+}
+
 .kana-mark {
   position: absolute;
   inset: 0;

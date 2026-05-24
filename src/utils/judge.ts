@@ -6,12 +6,14 @@ type RecognitionPayload = {
 };
 
 const alternateSounds: Record<string, string[]> = {
+  い: ["いい", "いー"],
   は: ["わ"],
   わ: ["は"],
   へ: ["え"],
   え: ["へ"],
   に: ["2", "二"],
   を: ["お"],
+  ん: ["んー", "うん", "うーん"],
 };
 
 function toHiragana(input: string) {
@@ -31,7 +33,13 @@ function compressRepeatedKana(input: string) {
 }
 
 export function getAcceptedCandidates(entry: KanaEntry) {
-  return [entry.kana, entry.sound, ...(alternateSounds[entry.kana] ?? [])];
+  const repeated = [entry.kana.repeat(2), `${entry.kana}ー`];
+  return [
+    entry.kana,
+    entry.sound,
+    ...repeated,
+    ...(alternateSounds[entry.kana] ?? []),
+  ];
 }
 
 export function isRecognitionMatch(
