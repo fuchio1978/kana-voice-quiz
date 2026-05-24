@@ -86,11 +86,13 @@ export function VoiceInput({
       onStart: () => setIsListening(true),
       onResult: (result) => {
         setIsListening(false);
+        setSession(null);
         setLastErrorCode(null);
         onResult(result);
       },
       onError: (message) => {
         setIsListening(false);
+        setSession(null);
         setLastErrorCode(message);
         onError(getRecognitionErrorMessage(message));
       },
@@ -118,6 +120,7 @@ export function VoiceInput({
 
     stopTimeoutRef.current = window.setTimeout(() => {
       session.stop({ manual: true });
+      setSession(null);
       stopTimeoutRef.current = null;
     }, isIPhone ? Math.max(releaseDelayMs, 1200) : releaseDelayMs);
   };
