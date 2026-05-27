@@ -55,6 +55,7 @@ export type SpeechRecognitionSession = {
 };
 
 let activeRecognition: SpeechRecognition | null = null;
+const ignoredAborts = new WeakSet<SpeechRecognition>();
 
 function getRecognitionClass(): RecognitionConstructor | null {
   return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
@@ -131,6 +132,7 @@ export function startSpeechRecognition(
   }
 
   if (activeRecognition) {
+    ignoredAborts.add(activeRecognition);
     try {
       activeRecognition.abort?.();
     } catch {
@@ -219,7 +221,8 @@ export function startSpeechRecognition(
     if (activeRecognition === recognition) {
       activeRecognition = null;
     }
-    if (event.error === "aborted" && manuallyStopped) {
+    if (event.error === "aborted" && (manuallyStopped || ignoredAborts.has(recognition))) {
+      ignoredAborts.delete(recognition);
       return;
     }
     options.onError(event.error);
@@ -232,6 +235,7 @@ export function startSpeechRecognition(
     if (activeRecognition === recognition) {
       activeRecognition = null;
     }
+    ignoredAborts.delete(recognition);
     if (finalTranscript && !hasDeliveredResult) {
       options.onResult({
         transcript: finalTranscript,
@@ -258,6 +262,7 @@ export function startSpeechRecognition(
     stop: (stopOptions) => {
       manuallyStopped = Boolean(stopOptions?.manual);
       if (stopOptions?.force) {
+        ignoredAborts.add(recognition);
         recognition.abort?.();
         if (!recognition.abort) {
           recognition.stop();
