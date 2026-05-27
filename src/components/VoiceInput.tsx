@@ -168,7 +168,7 @@ export function VoiceInput({
         </button>
       ) : null}
       <button
-        className={`primary-button hold-button ${isListening ? "holding" : ""}`}
+        className={`voice-action-button ${isListening ? "holding" : ""}`}
         type="button"
         onClick={isIPhone ? handleIPhoneToggle : undefined}
         onPointerDown={!isIPhone ? handlePressStart : undefined}
@@ -209,13 +209,25 @@ export function VoiceInput({
         }}
         disabled={!isSupported}
       >
-        {isIPhone
-          ? isListening
-            ? "もういちど おすと おわるよ"
-            : "おすと ききはじめる"
-          : isListening
-            ? "はなすと おわるよ…"
-            : "おしている あいだ きいてもらう"}
+        <span className="voice-action-icon" aria-hidden="true">
+          {isListening ? "🎙️" : "🎤"}
+        </span>
+        <span className="voice-action-copy">
+          <strong>
+            {isIPhone
+              ? isListening
+                ? "もういちど おすと おわるよ"
+                : "おすと ききはじめる"
+              : isListening
+                ? "はなすと おわるよ…"
+                : "おしている あいだ きいてもらう"}
+          </strong>
+          <span>
+            {isIPhone
+              ? "タップして こえを きいてもらおう"
+              : "マイクの ボタンを おして こえを いれてね"}
+          </span>
+        </span>
       </button>
       <p className="support-text">
         {isSupported

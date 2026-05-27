@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SessionResult } from "../App";
+import type { HintOrder, PracticeOrder, SessionResult } from "../App";
 import type { KanaEntry } from "../data/kanaData";
 import { HintGojyuonTable } from "./HintGojyuonTable";
 import { HintPicture } from "./HintPicture";
@@ -13,6 +13,8 @@ import { speakKana } from "../utils/speech";
 type KanaQuizProps = {
   kanaPool: KanaEntry[];
   questionCount: number;
+  questionOrder: PracticeOrder;
+  hintOrder: HintOrder;
   onFinish: (result: SessionResult) => void;
 };
 
@@ -39,10 +41,24 @@ function shuffleKana(entries: KanaEntry[], count: number) {
   return cloned.slice(0, count);
 }
 
-export function KanaQuiz({ kanaPool, questionCount, onFinish }: KanaQuizProps) {
+function buildQuestions(entries: KanaEntry[], count: number, order: PracticeOrder) {
+  if (order === "sequential") {
+    return entries.slice(0, Math.min(count, entries.length));
+  }
+
+  return shuffleKana(entries, Math.min(count, entries.length));
+}
+
+export function KanaQuiz({
+  kanaPool,
+  questionCount,
+  questionOrder,
+  hintOrder,
+  onFinish,
+}: KanaQuizProps) {
   const questions = useMemo(
-    () => shuffleKana(kanaPool, Math.min(questionCount, kanaPool.length)),
-    [kanaPool, questionCount],
+    () => buildQuestions(kanaPool, questionCount, questionOrder),
+    [kanaPool, questionCount, questionOrder],
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [attemptCount, setAttemptCount] = useState(0);
@@ -87,6 +103,7 @@ export function KanaQuiz({ kanaPool, questionCount, onFinish }: KanaQuizProps) {
           firstTryCorrectCount: nextTotals.firstTryCorrectCount,
           hintCorrectCount: nextTotals.hintCorrectCount,
           practicedKana,
+          totalQuestions: questions.length,
         });
         return;
       }
@@ -133,7 +150,8 @@ export function KanaQuiz({ kanaPool, questionCount, onFinish }: KanaQuizProps) {
     setAttemptCount(nextAttempt);
 
     if (nextAttempt === 1) {
-      setShowHint1(true);
+      setShowHint1(hintOrder === "table-first");
+      setShowHint2(hintOrder === "picture-first");
       setFeedbackMessage("もういちど やってみよう。ヒントを みてみよう。");
       return;
     }

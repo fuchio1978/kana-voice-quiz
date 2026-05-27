@@ -7,6 +7,12 @@ export type KanaEntry = {
   column: string;
 };
 
+export type PracticeScope = {
+  id: string;
+  label: string;
+  kana: string[];
+};
+
 export const kanaList: KanaEntry[] = [
   { kana: "あ", sound: "あ", word: "あめ", emoji: "🍬", row: "あ行", column: "あ段" },
   { kana: "い", sound: "い", word: "いぬ", emoji: "🐶", row: "あ行", column: "い段" },
@@ -67,4 +73,23 @@ export const gojyuonRows: Array<{ row: string; kana: string[] }> = [
   { row: "や行", kana: ["や", "", "ゆ", "", "よ"] },
   { row: "ら行", kana: ["ら", "り", "る", "れ", "ろ"] },
   { row: "わ行", kana: ["わ", "", "", "を", "ん"] }
+];
+
+export const rowScopes: PracticeScope[] = gojyuonRows.map((row) => ({
+  id: row.row,
+  label: row.row,
+  kana: row.kana.filter(Boolean),
+}));
+
+export const columnScopes: PracticeScope[] = [
+  { id: "a-top", label: "あかさたな", kana: ["あ", "か", "さ", "た", "な"] },
+  { id: "a-bottom", label: "はまやらわ", kana: ["は", "ま", "や", "ら", "わ"] },
+  { id: "i-top", label: "いきしちに", kana: ["い", "き", "し", "ち", "に"] },
+  { id: "i-bottom", label: "ひみり", kana: ["ひ", "み", "り"] },
+  { id: "u-top", label: "うくすつぬ", kana: ["う", "く", "す", "つ", "ぬ"] },
+  { id: "u-bottom", label: "ふむゆる", kana: ["ふ", "む", "ゆ", "る"] },
+  { id: "e-top", label: "えけせてね", kana: ["え", "け", "せ", "て", "ね"] },
+  { id: "e-bottom", label: "へめれ", kana: ["へ", "め", "れ"] },
+  { id: "o-top", label: "おこそとの", kana: ["お", "こ", "そ", "と", "の"] },
+  { id: "o-bottom", label: "ほもよろをん", kana: ["ほ", "も", "よ", "ろ", "を", "ん"] },
 ];

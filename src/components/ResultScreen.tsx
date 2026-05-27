@@ -9,13 +9,13 @@ export function ResultScreen({ result, onRestart }: ResultScreenProps) {
   return (
     <section className="result-screen">
       <div className="result-badge">🎉</div>
-      <h2>10もん おつかれさま！</h2>
+      <h2>{result.totalQuestions}もん おつかれさま！</h2>
       <p className="result-lead">よく がんばったね。きょうの けっか だよ。</p>
 
       <div className="result-grid">
         <article className="result-card">
           <span>せいかい した かず</span>
-          <strong>{result.correctCount} / 10</strong>
+          <strong>{result.correctCount} / {result.totalQuestions}</strong>
         </article>
         <article className="result-card">
           <span>さいしょで せいかい</span>
