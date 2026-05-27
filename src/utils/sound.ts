@@ -1,11 +1,31 @@
-export function playCorrectSound() {
-  const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+let sharedAudioContext: AudioContext | null = null;
+
+function getAudioContext() {
+  const AudioContextClass =
+    window.AudioContext ||
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
   if (!AudioContextClass) {
-    return;
+    return null;
   }
 
-  const context = new AudioContextClass();
+  if (!sharedAudioContext || sharedAudioContext.state === "closed") {
+    sharedAudioContext = new AudioContextClass();
+  }
+
+  return sharedAudioContext;
+}
+
+export function playCorrectSound() {
+  const context = getAudioContext();
+  if (!context) {
+    return;
+  }
   const now = context.currentTime;
+
+  if (context.state === "suspended") {
+    void context.resume();
+  }
 
   const oscillatorA = context.createOscillator();
   const oscillatorB = context.createOscillator();
@@ -28,8 +48,4 @@ export function playCorrectSound() {
   oscillatorA.stop(now + 0.18);
   oscillatorB.start(now + 0.12);
   oscillatorB.stop(now + 0.32);
-
-  window.setTimeout(() => {
-    void context.close();
-  }, 600);
 }

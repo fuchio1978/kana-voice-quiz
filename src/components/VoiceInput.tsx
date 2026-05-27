@@ -31,6 +31,8 @@ export function VoiceInput({
   const [lastErrorCode, setLastErrorCode] = useState<string | null>(null);
   const [isRecovering, setIsRecovering] = useState(false);
   const isSupported = useMemo(() => getSpeechRecognitionAvailability(), []);
+  const isMountedRef = useRef(true);
+  const sessionVersionRef = useRef(0);
   const sessionRef = useRef<SpeechRecognitionSession | null>(null);
   const stopTimeoutRef = useRef<number | null>(null);
   const sessionWatchdogRef = useRef<number | null>(null);
@@ -48,7 +50,10 @@ export function VoiceInput({
   );
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
+      sessionVersionRef.current += 1;
       if (stopTimeoutRef.current) {
         window.clearTimeout(stopTimeoutRef.current);
       }
@@ -68,6 +73,7 @@ export function VoiceInput({
   }, []);
 
   useEffect(() => {
+    sessionVersionRef.current += 1;
     if (stopTimeoutRef.current) {
       window.clearTimeout(stopTimeoutRef.current);
       stopTimeoutRef.current = null;
@@ -143,11 +149,21 @@ export function VoiceInput({
     setIsListening(true);
     setLastErrorCode(null);
     onError("");
+    const sessionVersion = sessionVersionRef.current + 1;
+    sessionVersionRef.current = sessionVersion;
 
     const nextSession = startSpeechRecognition({
       expectedPhrases,
-      onStart: () => setIsListening(true),
+      onStart: () => {
+        if (!isMountedRef.current || sessionVersionRef.current !== sessionVersion) {
+          return;
+        }
+        setIsListening(true);
+      },
       onResult: (result) => {
+        if (!isMountedRef.current || sessionVersionRef.current !== sessionVersion) {
+          return;
+        }
         if (sessionWatchdogRef.current) {
           window.clearTimeout(sessionWatchdogRef.current);
           sessionWatchdogRef.current = null;
@@ -157,6 +173,9 @@ export function VoiceInput({
         onResult(result);
       },
       onError: (message) => {
+        if (!isMountedRef.current || sessionVersionRef.current !== sessionVersion) {
+          return;
+        }
         if (sessionWatchdogRef.current) {
           window.clearTimeout(sessionWatchdogRef.current);
           sessionWatchdogRef.current = null;
@@ -166,6 +185,9 @@ export function VoiceInput({
         onError(getRecognitionErrorMessage(message));
       },
       onEnd: () => {
+        if (!isMountedRef.current || sessionVersionRef.current !== sessionVersion) {
+          return;
+        }
         if (sessionWatchdogRef.current) {
           window.clearTimeout(sessionWatchdogRef.current);
           sessionWatchdogRef.current = null;
