@@ -27,11 +27,11 @@ export function VoiceInput({
   errorMessage,
 }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
-  const [session, setSession] = useState<SpeechRecognitionSession | null>(null);
   const [permissionState, setPermissionState] = useState<MicrophonePermissionState>("unknown");
   const [lastErrorCode, setLastErrorCode] = useState<string | null>(null);
   const [isRecovering, setIsRecovering] = useState(false);
   const isSupported = useMemo(() => getSpeechRecognitionAvailability(), []);
+  const sessionRef = useRef<SpeechRecognitionSession | null>(null);
   const stopTimeoutRef = useRef<number | null>(null);
   const sessionWatchdogRef = useRef<number | null>(null);
   const recoveryTimeoutRef = useRef<number | null>(null);
@@ -58,9 +58,10 @@ export function VoiceInput({
       if (recoveryTimeoutRef.current) {
         window.clearTimeout(recoveryTimeoutRef.current);
       }
-      session?.stop({ manual: true });
+      sessionRef.current?.stop({ manual: true });
+      sessionRef.current = null;
     };
-  }, [session]);
+  }, []);
 
   useEffect(() => {
     void getMicrophonePermissionState().then(setPermissionState);
@@ -79,8 +80,8 @@ export function VoiceInput({
       window.clearTimeout(recoveryTimeoutRef.current);
       recoveryTimeoutRef.current = null;
     }
-    session?.stop({ manual: true });
-    setSession(null);
+    sessionRef.current?.stop({ manual: true });
+    sessionRef.current = null;
     setIsListening(false);
     setIsRecovering(false);
     setLastErrorCode(null);
@@ -99,12 +100,12 @@ export function VoiceInput({
       window.clearTimeout(recoveryTimeoutRef.current);
       recoveryTimeoutRef.current = null;
     }
-    session?.stop({ manual: true });
+    sessionRef.current?.stop({ manual: true });
     setIsListening(false);
     setIsRecovering(true);
     setLastErrorCode(null);
     recoveryTimeoutRef.current = window.setTimeout(() => {
-      setSession(null);
+      sessionRef.current = null;
       setIsRecovering(false);
       recoveryTimeoutRef.current = null;
     }, 900);
@@ -130,7 +131,7 @@ export function VoiceInput({
   };
 
   const handleStart = () => {
-    if (!isSupported || isListening || session || isRecovering) {
+    if (!isSupported || isListening || sessionRef.current || isRecovering) {
       return;
     }
 
@@ -174,23 +175,24 @@ export function VoiceInput({
           recoveryTimeoutRef.current = null;
         }
         setIsListening(false);
-        setSession(null);
+        sessionRef.current = null;
         setIsRecovering(false);
       },
     });
 
     if (!nextSession) {
       setIsListening(false);
+      sessionRef.current = null;
     }
 
-    setSession(nextSession);
+    sessionRef.current = nextSession;
     sessionWatchdogRef.current = window.setTimeout(() => {
       resetRecognitionState(true);
     }, 6500);
   };
 
   const handleStop = () => {
-    if (!session) {
+    if (!sessionRef.current) {
       return;
     }
 
@@ -199,10 +201,10 @@ export function VoiceInput({
     }
 
     stopTimeoutRef.current = window.setTimeout(() => {
-      session.stop({ manual: true });
+      sessionRef.current?.stop({ manual: true });
       setIsRecovering(true);
       recoveryTimeoutRef.current = window.setTimeout(() => {
-        setSession(null);
+        sessionRef.current = null;
         setIsRecovering(false);
         recoveryTimeoutRef.current = null;
       }, 900);

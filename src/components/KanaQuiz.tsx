@@ -219,6 +219,7 @@ export function KanaQuiz({
       <div className="quiz-main-grid">
         <div className="quiz-primary-column">
           <VoiceInput
+            key={`${currentEntry.kana}-${currentIndex}`}
             expectedPhrases={getAcceptedCandidates(currentEntry)}
             releaseDelayMs={getReleaseDelayMs(currentEntry.kana)}
             onResult={handleVoiceResult}

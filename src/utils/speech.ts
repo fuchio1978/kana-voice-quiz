@@ -109,6 +109,8 @@ export function getRecognitionErrorMessage(error: string) {
       return "おんせいにんしきが つながらなかったよ。もういちど ためしてみよう。";
     case "aborted":
       return "ききとりを とめたよ。もういちど ボタンを おしてね。";
+    case "busy":
+      return "マイクが まだ じゅんびちゅう みたい。すこし まってから もういちど おしてね。";
     case "unsupported":
       return "この ぶらうざでは おんせいにんしきが むずかしいみたい。";
     default:
@@ -129,7 +131,7 @@ export function startSpeechRecognition(
   recognition.lang = "ja-JP";
   recognition.interimResults = true;
   recognition.maxAlternatives = 5;
-  recognition.continuous = true;
+  recognition.continuous = false;
 
   const GrammarListClass = getSpeechGrammarListClass();
   if (GrammarListClass && options.expectedPhrases?.length) {
@@ -222,7 +224,7 @@ export function startSpeechRecognition(
   try {
     recognition.start();
   } catch {
-    options.onError("aborted");
+    options.onError("busy");
     return null;
   }
 
