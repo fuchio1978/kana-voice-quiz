@@ -10,7 +10,8 @@ const alternateSounds: Record<string, string[]> = {
   は: ["わ"],
   わ: ["は"],
   へ: ["え"],
-  え: ["へ"],
+  え: ["へ", "絵"],
+  く: ["9", "９"],
   に: ["2", "二"],
   を: ["お"],
   ん: ["んー", "うん", "うーん"],
@@ -24,6 +25,8 @@ function toHiragana(input: string) {
 
 function normalizeTranscript(input: string) {
   return toHiragana(input)
+    .replace(/絵/g, "え")
+    .replace(/[9９]/g, "く")
     .replace(/[ー〜\-!！?？,、。.\s]/g, "")
     .trim();
 }

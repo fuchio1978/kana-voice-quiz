@@ -30,9 +30,11 @@ export function VoiceInput({
   const [session, setSession] = useState<SpeechRecognitionSession | null>(null);
   const [permissionState, setPermissionState] = useState<MicrophonePermissionState>("unknown");
   const [lastErrorCode, setLastErrorCode] = useState<string | null>(null);
+  const [isRecovering, setIsRecovering] = useState(false);
   const isSupported = useMemo(() => getSpeechRecognitionAvailability(), []);
   const stopTimeoutRef = useRef<number | null>(null);
   const sessionWatchdogRef = useRef<number | null>(null);
+  const recoveryTimeoutRef = useRef<number | null>(null);
   const hasTouchSupport = useMemo(() => {
     if (typeof navigator === "undefined" || typeof window === "undefined") {
       return false;
@@ -53,6 +55,9 @@ export function VoiceInput({
       if (sessionWatchdogRef.current) {
         window.clearTimeout(sessionWatchdogRef.current);
       }
+      if (recoveryTimeoutRef.current) {
+        window.clearTimeout(recoveryTimeoutRef.current);
+      }
       session?.stop({ manual: true });
     };
   }, [session]);
@@ -70,9 +75,14 @@ export function VoiceInput({
       window.clearTimeout(sessionWatchdogRef.current);
       sessionWatchdogRef.current = null;
     }
+    if (recoveryTimeoutRef.current) {
+      window.clearTimeout(recoveryTimeoutRef.current);
+      recoveryTimeoutRef.current = null;
+    }
     session?.stop({ manual: true });
     setSession(null);
     setIsListening(false);
+    setIsRecovering(false);
     setLastErrorCode(null);
   }, [expectedPhrasesKey]);
 
@@ -85,10 +95,19 @@ export function VoiceInput({
       window.clearTimeout(sessionWatchdogRef.current);
       sessionWatchdogRef.current = null;
     }
+    if (recoveryTimeoutRef.current) {
+      window.clearTimeout(recoveryTimeoutRef.current);
+      recoveryTimeoutRef.current = null;
+    }
     session?.stop({ manual: true });
-    setSession(null);
     setIsListening(false);
+    setIsRecovering(true);
     setLastErrorCode(null);
+    recoveryTimeoutRef.current = window.setTimeout(() => {
+      setSession(null);
+      setIsRecovering(false);
+      recoveryTimeoutRef.current = null;
+    }, 900);
     if (showMessage) {
       onError("マイクを やりなおしたよ。もういちど おして ためしてみよう。");
     } else {
@@ -111,7 +130,7 @@ export function VoiceInput({
   };
 
   const handleStart = () => {
-    if (!isSupported || isListening || session) {
+    if (!isSupported || isListening || session || isRecovering) {
       return;
     }
 
@@ -133,7 +152,6 @@ export function VoiceInput({
           sessionWatchdogRef.current = null;
         }
         setIsListening(false);
-        setSession(null);
         setLastErrorCode(null);
         onResult(result);
       },
@@ -143,7 +161,6 @@ export function VoiceInput({
           sessionWatchdogRef.current = null;
         }
         setIsListening(false);
-        setSession(null);
         setLastErrorCode(message);
         onError(getRecognitionErrorMessage(message));
       },
@@ -152,8 +169,13 @@ export function VoiceInput({
           window.clearTimeout(sessionWatchdogRef.current);
           sessionWatchdogRef.current = null;
         }
+        if (recoveryTimeoutRef.current) {
+          window.clearTimeout(recoveryTimeoutRef.current);
+          recoveryTimeoutRef.current = null;
+        }
         setIsListening(false);
         setSession(null);
+        setIsRecovering(false);
       },
     });
 
@@ -178,7 +200,12 @@ export function VoiceInput({
 
     stopTimeoutRef.current = window.setTimeout(() => {
       session.stop({ manual: true });
-      setSession(null);
+      setIsRecovering(true);
+      recoveryTimeoutRef.current = window.setTimeout(() => {
+        setSession(null);
+        setIsRecovering(false);
+        recoveryTimeoutRef.current = null;
+      }, 900);
       stopTimeoutRef.current = null;
     }, releaseDelayMs);
   };
@@ -284,6 +311,9 @@ export function VoiceInput({
         </button>
       </div>
       {lastErrorCode ? <p className="debug-text">状態: {lastErrorCode}</p> : null}
+      {isRecovering ? (
+        <p className="debug-text">マイクを ととのえているよ… ちょっと まってね</p>
+      ) : null}
       {errorMessage ? <p className="gentle-alert">{errorMessage}</p> : null}
     </section>
   );
