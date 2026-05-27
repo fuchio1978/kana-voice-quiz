@@ -38,135 +38,137 @@ export function PracticeSettingsScreen({
           れんしゅうしたい ばしょを えらんで から はじめよう。
         </p>
 
-        <div className="settings-block">
-          <h3>よこの れんしゅう</h3>
-          <div className="settings-chip-grid">
-            {rowScopes.map((scope) => {
-              const isSelected = settings.selectedRowScopeIds.includes(scope.id);
-              return (
+        <div className="settings-sections">
+          <div className="settings-block">
+            <h3>よこの れんしゅう</h3>
+            <div className="settings-chip-grid">
+              {rowScopes.map((scope) => {
+                const isSelected = settings.selectedRowScopeIds.includes(scope.id);
+                return (
+                  <button
+                    key={scope.id}
+                    className={`settings-chip ${isSelected ? "selected" : ""}`}
+                    type="button"
+                    onClick={() =>
+                      setSettings((current) => ({
+                        ...current,
+                        selectedRowScopeIds: toggleValue(current.selectedRowScopeIds, scope.id),
+                      }))
+                    }
+                  >
+                    {scope.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="settings-block">
+            <h3>たての れんしゅう</h3>
+            <div className="settings-chip-grid">
+              {columnScopes.map((scope) => {
+                const isSelected = settings.selectedColumnScopeIds.includes(scope.id);
+                return (
+                  <button
+                    key={scope.id}
+                    className={`settings-chip ${isSelected ? "selected" : ""}`}
+                    type="button"
+                    onClick={() =>
+                      setSettings((current) => ({
+                        ...current,
+                        selectedColumnScopeIds: toggleValue(
+                          current.selectedColumnScopeIds,
+                          scope.id,
+                        ),
+                      }))
+                    }
+                  >
+                    {scope.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="settings-block">
+            <h3>もんだい すう</h3>
+            <div className="settings-order-row">
+              {[5, 10, 15, 20, "all"].map((count) => (
                 <button
-                  key={scope.id}
-                  className={`settings-chip ${isSelected ? "selected" : ""}`}
+                  key={count}
+                  className={`settings-chip ${settings.questionCount === count ? "selected" : ""}`}
                   type="button"
                   onClick={() =>
                     setSettings((current) => ({
                       ...current,
-                      selectedRowScopeIds: toggleValue(current.selectedRowScopeIds, scope.id),
+                      questionCount: count as PracticeSettings["questionCount"],
                     }))
                   }
                 >
-                  {scope.label}
+                  {count === "all" ? "ぜんぶ" : `${count}もん`}
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="settings-block">
-          <h3>たての れんしゅう</h3>
-          <div className="settings-chip-grid">
-            {columnScopes.map((scope) => {
-              const isSelected = settings.selectedColumnScopeIds.includes(scope.id);
-              return (
-                <button
-                  key={scope.id}
-                  className={`settings-chip ${isSelected ? "selected" : ""}`}
-                  type="button"
-                  onClick={() =>
-                    setSettings((current) => ({
-                      ...current,
-                      selectedColumnScopeIds: toggleValue(
-                        current.selectedColumnScopeIds,
-                        scope.id,
-                      ),
-                    }))
-                  }
-                >
-                  {scope.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="settings-block">
-          <h3>もんだい すう</h3>
-          <div className="settings-order-row">
-            {[5, 10, 15, 20, "all"].map((count) => (
+          <div className="settings-block">
+            <h3>もんだいの じゅんばん</h3>
+            <div className="settings-order-row">
               <button
-                key={count}
-                className={`settings-chip ${settings.questionCount === count ? "selected" : ""}`}
+                className={`settings-chip ${settings.order === "sequential" ? "selected" : ""}`}
                 type="button"
                 onClick={() =>
                   setSettings((current) => ({
                     ...current,
-                    questionCount: count as PracticeSettings["questionCount"],
+                    order: "sequential",
                   }))
                 }
               >
-                {count === "all" ? "ぜんぶ" : `${count}もん`}
+                じゅんばんどおり
               </button>
-            ))}
+              <button
+                className={`settings-chip ${settings.order === "random" ? "selected" : ""}`}
+                type="button"
+                onClick={() =>
+                  setSettings((current) => ({
+                    ...current,
+                    order: "random",
+                  }))
+                }
+              >
+                ランダム
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div className="settings-block">
-          <h3>もんだいの じゅんばん</h3>
-          <div className="settings-order-row">
-            <button
-              className={`settings-chip ${settings.order === "sequential" ? "selected" : ""}`}
-              type="button"
-              onClick={() =>
-                setSettings((current) => ({
-                  ...current,
-                  order: "sequential",
-                }))
-              }
-            >
-              じゅんばんどおり
-            </button>
-            <button
-              className={`settings-chip ${settings.order === "random" ? "selected" : ""}`}
-              type="button"
-              onClick={() =>
-                setSettings((current) => ({
-                  ...current,
-                  order: "random",
-                }))
-              }
-            >
-              ランダム
-            </button>
-          </div>
-        </div>
-
-        <div className="settings-block">
-          <h3>ヒントの じゅんばん</h3>
-          <div className="settings-order-row">
-            <button
-              className={`settings-chip ${settings.hintOrder === "table-first" ? "selected" : ""}`}
-              type="button"
-              onClick={() =>
-                setSettings((current) => ({
-                  ...current,
-                  hintOrder: "table-first",
-                }))
-              }
-            >
-              ごじゅうおんひょう → え
-            </button>
-            <button
-              className={`settings-chip ${settings.hintOrder === "picture-first" ? "selected" : ""}`}
-              type="button"
-              onClick={() =>
-                setSettings((current) => ({
-                  ...current,
-                  hintOrder: "picture-first",
-                }))
-              }
-            >
-              え → ごじゅうおんひょう
-            </button>
+          <div className="settings-block settings-block-wide">
+            <h3>ヒントの じゅんばん</h3>
+            <div className="settings-order-row">
+              <button
+                className={`settings-chip ${settings.hintOrder === "table-first" ? "selected" : ""}`}
+                type="button"
+                onClick={() =>
+                  setSettings((current) => ({
+                    ...current,
+                    hintOrder: "table-first",
+                  }))
+                }
+              >
+                ごじゅうおんひょう → え
+              </button>
+              <button
+                className={`settings-chip ${settings.hintOrder === "picture-first" ? "selected" : ""}`}
+                type="button"
+                onClick={() =>
+                  setSettings((current) => ({
+                    ...current,
+                    hintOrder: "picture-first",
+                  }))
+                }
+              >
+                え → ごじゅうおんひょう
+              </button>
+            </div>
           </div>
         </div>
 

@@ -32,13 +32,20 @@ export function VoiceInput({
   const [lastErrorCode, setLastErrorCode] = useState<string | null>(null);
   const isSupported = useMemo(() => getSpeechRecognitionAvailability(), []);
   const stopTimeoutRef = useRef<number | null>(null);
-  const isIPhone = useMemo(() => {
+  const isTouchDevice = useMemo(() => {
     if (typeof navigator === "undefined") {
       return false;
     }
 
-    return /iPhone/i.test(navigator.userAgent);
+    return (
+      /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.maxTouchPoints ?? 0) > 1
+    );
   }, []);
+  const expectedPhrasesKey = useMemo(
+    () => (expectedPhrases ?? []).join("|"),
+    [expectedPhrases],
+  );
 
   useEffect(() => {
     return () => {
@@ -52,6 +59,17 @@ export function VoiceInput({
   useEffect(() => {
     void getMicrophonePermissionState().then(setPermissionState);
   }, []);
+
+  useEffect(() => {
+    if (stopTimeoutRef.current) {
+      window.clearTimeout(stopTimeoutRef.current);
+      stopTimeoutRef.current = null;
+    }
+    session?.stop({ manual: true });
+    setSession(null);
+    setIsListening(false);
+    setLastErrorCode(null);
+  }, [expectedPhrasesKey]);
 
   const handlePrepareMic = async () => {
     try {
@@ -122,7 +140,7 @@ export function VoiceInput({
       session.stop({ manual: true });
       setSession(null);
       stopTimeoutRef.current = null;
-    }, isIPhone ? Math.max(releaseDelayMs, 1200) : releaseDelayMs);
+    }, isTouchDevice ? Math.max(releaseDelayMs, 1200) : releaseDelayMs);
   };
 
   const handlePressStart = () => {
@@ -142,7 +160,7 @@ export function VoiceInput({
     handleStop();
   };
 
-  const handleIPhoneToggle = () => {
+  const handleTouchToggle = () => {
     if (isListening) {
       handleStop();
       return;
@@ -170,39 +188,23 @@ export function VoiceInput({
       <button
         className={`voice-action-button ${isListening ? "holding" : ""}`}
         type="button"
-        onClick={isIPhone ? handleIPhoneToggle : undefined}
-        onPointerDown={!isIPhone ? handlePressStart : undefined}
-        onPointerUp={!isIPhone ? handlePressEnd : undefined}
-        onPointerLeave={!isIPhone ? handlePressEnd : undefined}
-        onPointerCancel={!isIPhone ? handlePressEnd : undefined}
-        onTouchStart={
-          !isIPhone
-            ? (event) => {
-                event.preventDefault();
-                handlePressStart();
-              }
-            : undefined
-        }
-        onTouchEnd={
-          !isIPhone
-            ? (event) => {
-                event.preventDefault();
-                handlePressEnd();
-              }
-            : undefined
-        }
+        onClick={isTouchDevice ? handleTouchToggle : undefined}
+        onPointerDown={!isTouchDevice ? handlePressStart : undefined}
+        onPointerUp={!isTouchDevice ? handlePressEnd : undefined}
+        onPointerLeave={!isTouchDevice ? handlePressEnd : undefined}
+        onPointerCancel={!isTouchDevice ? handlePressEnd : undefined}
         onKeyDown={(event) => {
           if ((event.key === " " || event.key === "Enter") && !event.repeat) {
             event.preventDefault();
-            if (isIPhone) {
-              handleIPhoneToggle();
+            if (isTouchDevice) {
+              handleTouchToggle();
             } else {
               handlePressStart();
             }
           }
         }}
         onKeyUp={(event) => {
-          if (!isIPhone && (event.key === " " || event.key === "Enter")) {
+          if (!isTouchDevice && (event.key === " " || event.key === "Enter")) {
             event.preventDefault();
             handlePressEnd();
           }
@@ -214,7 +216,7 @@ export function VoiceInput({
         </span>
         <span className="voice-action-copy">
           <strong>
-            {isIPhone
+            {isTouchDevice
               ? isListening
                 ? "もういちど おすと おわるよ"
                 : "おすと ききはじめる"
@@ -223,7 +225,7 @@ export function VoiceInput({
                 : "おしている あいだ きいてもらう"}
           </strong>
           <span>
-            {isIPhone
+            {isTouchDevice
               ? "タップして こえを きいてもらおう"
               : "マイクの ボタンを おして こえを いれてね"}
           </span>
@@ -231,8 +233,8 @@ export function VoiceInput({
       </button>
       <p className="support-text">
         {isSupported
-          ? isIPhone
-            ? "iPhoneでは 1かい おすと ききはじめて、もういちど おすと けっかを みるよ。"
+          ? isTouchDevice
+            ? "タップできくときは 1かい おすと ききはじめて、もういちど おすと けっかを みるよ。"
             : "ボタンを おしている あいだだけ きくよ。はなしたら けっかを みるよ。"
           : helperMessage}
       </p>

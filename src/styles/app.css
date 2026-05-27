@@ -86,47 +86,62 @@ button {
   border-radius: 28px;
   padding: 18px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 .settings-panel h2 {
   margin: 0;
   color: #456779;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
+}
+
+.settings-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  min-height: 0;
 }
 
 .settings-block {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  align-content: start;
 }
 
 .settings-block h3 {
   margin: 0;
   color: #5f7f55;
-  font-size: 1rem;
+  font-size: 0.94rem;
+}
+
+.settings-block-wide {
+  grid-column: 1 / -1;
 }
 
 .settings-chip-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 6px;
 }
 
 .settings-order-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .settings-chip {
   border: 2px solid #d8e6f4;
-  border-radius: 18px;
+  border-radius: 14px;
   background: #f9fcff;
   color: #3d5871;
-  min-height: 48px;
-  padding: 10px 12px;
+  min-height: 40px;
+  padding: 8px 10px;
   font-weight: 800;
   cursor: pointer;
+  font-size: 0.86rem;
 }
 
 .settings-chip.selected {
@@ -138,8 +153,9 @@ button {
 .settings-summary {
   background: #f7fbff;
   border-radius: 18px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   color: #5d636c;
+  font-size: 0.86rem;
 }
 
 .settings-summary p {
@@ -616,8 +632,8 @@ button {
   }
 
   .settings-panel {
-    padding: 14px;
-    gap: 12px;
+    padding: 12px;
+    gap: 10px;
   }
 
   .voice-action-button {
@@ -652,6 +668,14 @@ button {
   .quiz-main-grid {
     grid-template-columns: 1fr;
   }
+
+  .settings-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-block-wide {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 720px) {
@@ -672,6 +696,7 @@ button {
 
   .settings-panel {
     padding: 14px;
+    overflow: visible;
   }
 
   .settings-chip-grid {
