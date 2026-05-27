@@ -35,6 +35,7 @@ declare global {
     onend: (() => void) | null;
     start: () => void;
     stop: () => void;
+    abort?: () => void;
   }
   interface SpeechGrammarList {
     addFromString: (string: string, weight?: number) => void;
@@ -50,8 +51,10 @@ type StartSpeechRecognitionOptions = {
 };
 
 export type SpeechRecognitionSession = {
-  stop: (options?: { manual?: boolean }) => void;
+  stop: (options?: { manual?: boolean; force?: boolean }) => void;
 };
+
+let activeRecognition: SpeechRecognition | null = null;
 
 function getRecognitionClass(): RecognitionConstructor | null {
   return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
@@ -127,7 +130,21 @@ export function startSpeechRecognition(
     return null;
   }
 
+  if (activeRecognition) {
+    try {
+      activeRecognition.abort?.();
+    } catch {
+      try {
+        activeRecognition.stop();
+      } catch {
+        // noop
+      }
+    }
+    activeRecognition = null;
+  }
+
   const recognition = new RecognitionClass();
+  activeRecognition = recognition;
   recognition.lang = "ja-JP";
   recognition.interimResults = true;
   recognition.maxAlternatives = 5;
@@ -158,7 +175,7 @@ export function startSpeechRecognition(
     options.onStart();
     stopTimer = window.setTimeout(() => {
       recognition.stop();
-    }, 2800);
+    }, 1800);
   };
 
   recognition.onresult = (event) => {
@@ -199,6 +216,9 @@ export function startSpeechRecognition(
     if (stopTimer) {
       window.clearTimeout(stopTimer);
     }
+    if (activeRecognition === recognition) {
+      activeRecognition = null;
+    }
     if (event.error === "aborted" && manuallyStopped) {
       return;
     }
@@ -208,6 +228,9 @@ export function startSpeechRecognition(
   recognition.onend = () => {
     if (stopTimer) {
       window.clearTimeout(stopTimer);
+    }
+    if (activeRecognition === recognition) {
+      activeRecognition = null;
     }
     if (finalTranscript && !hasDeliveredResult) {
       options.onResult({
@@ -224,6 +247,9 @@ export function startSpeechRecognition(
   try {
     recognition.start();
   } catch {
+    if (activeRecognition === recognition) {
+      activeRecognition = null;
+    }
     options.onError("busy");
     return null;
   }
@@ -231,6 +257,13 @@ export function startSpeechRecognition(
   return {
     stop: (stopOptions) => {
       manuallyStopped = Boolean(stopOptions?.manual);
+      if (stopOptions?.force) {
+        recognition.abort?.();
+        if (!recognition.abort) {
+          recognition.stop();
+        }
+        return;
+      }
       recognition.stop();
     },
   };

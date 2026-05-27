@@ -58,7 +58,7 @@ export function VoiceInput({
       if (recoveryTimeoutRef.current) {
         window.clearTimeout(recoveryTimeoutRef.current);
       }
-      sessionRef.current?.stop({ manual: true });
+      sessionRef.current?.stop({ manual: true, force: true });
       sessionRef.current = null;
     };
   }, []);
@@ -80,7 +80,7 @@ export function VoiceInput({
       window.clearTimeout(recoveryTimeoutRef.current);
       recoveryTimeoutRef.current = null;
     }
-    sessionRef.current?.stop({ manual: true });
+    sessionRef.current?.stop({ manual: true, force: true });
     sessionRef.current = null;
     setIsListening(false);
     setIsRecovering(false);
@@ -100,7 +100,7 @@ export function VoiceInput({
       window.clearTimeout(recoveryTimeoutRef.current);
       recoveryTimeoutRef.current = null;
     }
-    sessionRef.current?.stop({ manual: true });
+    sessionRef.current?.stop({ manual: true, force: true });
     setIsListening(false);
     setIsRecovering(true);
     setLastErrorCode(null);
@@ -193,6 +193,12 @@ export function VoiceInput({
 
   const handleStop = () => {
     if (!sessionRef.current) {
+      return;
+    }
+
+    if (hasTouchSupport) {
+      setIsListening(false);
+      setIsRecovering(true);
       return;
     }
 
