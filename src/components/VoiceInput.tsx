@@ -32,15 +32,13 @@ export function VoiceInput({
   const [lastErrorCode, setLastErrorCode] = useState<string | null>(null);
   const isSupported = useMemo(() => getSpeechRecognitionAvailability(), []);
   const stopTimeoutRef = useRef<number | null>(null);
-  const isTouchDevice = useMemo(() => {
-    if (typeof navigator === "undefined") {
+  const sessionWatchdogRef = useRef<number | null>(null);
+  const hasTouchSupport = useMemo(() => {
+    if (typeof navigator === "undefined" || typeof window === "undefined") {
       return false;
     }
 
-    return (
-      /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-      (navigator.maxTouchPoints ?? 0) > 1
-    );
+    return (navigator.maxTouchPoints ?? 0) > 0 || "ontouchstart" in window;
   }, []);
   const expectedPhrasesKey = useMemo(
     () => (expectedPhrases ?? []).join("|"),
@@ -51,6 +49,9 @@ export function VoiceInput({
     return () => {
       if (stopTimeoutRef.current) {
         window.clearTimeout(stopTimeoutRef.current);
+      }
+      if (sessionWatchdogRef.current) {
+        window.clearTimeout(sessionWatchdogRef.current);
       }
       session?.stop({ manual: true });
     };
@@ -65,11 +66,35 @@ export function VoiceInput({
       window.clearTimeout(stopTimeoutRef.current);
       stopTimeoutRef.current = null;
     }
+    if (sessionWatchdogRef.current) {
+      window.clearTimeout(sessionWatchdogRef.current);
+      sessionWatchdogRef.current = null;
+    }
     session?.stop({ manual: true });
     setSession(null);
     setIsListening(false);
     setLastErrorCode(null);
   }, [expectedPhrasesKey]);
+
+  const resetRecognitionState = (showMessage = false) => {
+    if (stopTimeoutRef.current) {
+      window.clearTimeout(stopTimeoutRef.current);
+      stopTimeoutRef.current = null;
+    }
+    if (sessionWatchdogRef.current) {
+      window.clearTimeout(sessionWatchdogRef.current);
+      sessionWatchdogRef.current = null;
+    }
+    session?.stop({ manual: true });
+    setSession(null);
+    setIsListening(false);
+    setLastErrorCode(null);
+    if (showMessage) {
+      onError("マイクを やりなおしたよ。もういちど おして ためしてみよう。");
+    } else {
+      onError("");
+    }
+  };
 
   const handlePrepareMic = async () => {
     try {
@@ -103,18 +128,30 @@ export function VoiceInput({
       expectedPhrases,
       onStart: () => setIsListening(true),
       onResult: (result) => {
+        if (sessionWatchdogRef.current) {
+          window.clearTimeout(sessionWatchdogRef.current);
+          sessionWatchdogRef.current = null;
+        }
         setIsListening(false);
         setSession(null);
         setLastErrorCode(null);
         onResult(result);
       },
       onError: (message) => {
+        if (sessionWatchdogRef.current) {
+          window.clearTimeout(sessionWatchdogRef.current);
+          sessionWatchdogRef.current = null;
+        }
         setIsListening(false);
         setSession(null);
         setLastErrorCode(message);
         onError(getRecognitionErrorMessage(message));
       },
       onEnd: () => {
+        if (sessionWatchdogRef.current) {
+          window.clearTimeout(sessionWatchdogRef.current);
+          sessionWatchdogRef.current = null;
+        }
         setIsListening(false);
         setSession(null);
       },
@@ -125,6 +162,9 @@ export function VoiceInput({
     }
 
     setSession(nextSession);
+    sessionWatchdogRef.current = window.setTimeout(() => {
+      resetRecognitionState(true);
+    }, 6500);
   };
 
   const handleStop = () => {
@@ -140,7 +180,7 @@ export function VoiceInput({
       session.stop({ manual: true });
       setSession(null);
       stopTimeoutRef.current = null;
-    }, isTouchDevice ? Math.max(releaseDelayMs, 1200) : releaseDelayMs);
+    }, releaseDelayMs);
   };
 
   const handlePressStart = () => {
@@ -158,15 +198,6 @@ export function VoiceInput({
 
   const handlePressEnd = () => {
     handleStop();
-  };
-
-  const handleTouchToggle = () => {
-    if (isListening) {
-      handleStop();
-      return;
-    }
-
-    handlePressStart();
   };
 
   const helperMessage = !isSupported
@@ -188,23 +219,34 @@ export function VoiceInput({
       <button
         className={`voice-action-button ${isListening ? "holding" : ""}`}
         type="button"
-        onClick={isTouchDevice ? handleTouchToggle : undefined}
-        onPointerDown={!isTouchDevice ? handlePressStart : undefined}
-        onPointerUp={!isTouchDevice ? handlePressEnd : undefined}
-        onPointerLeave={!isTouchDevice ? handlePressEnd : undefined}
-        onPointerCancel={!isTouchDevice ? handlePressEnd : undefined}
+        onPointerDown={!hasTouchSupport ? handlePressStart : undefined}
+        onPointerUp={!hasTouchSupport ? handlePressEnd : undefined}
+        onPointerLeave={!hasTouchSupport ? handlePressEnd : undefined}
+        onPointerCancel={!hasTouchSupport ? handlePressEnd : undefined}
+        onTouchStart={
+          hasTouchSupport
+            ? (event) => {
+                event.preventDefault();
+                handlePressStart();
+              }
+            : undefined
+        }
+        onTouchEnd={
+          hasTouchSupport
+            ? (event) => {
+                event.preventDefault();
+                handlePressEnd();
+              }
+            : undefined
+        }
         onKeyDown={(event) => {
           if ((event.key === " " || event.key === "Enter") && !event.repeat) {
             event.preventDefault();
-            if (isTouchDevice) {
-              handleTouchToggle();
-            } else {
-              handlePressStart();
-            }
+            handlePressStart();
           }
         }}
         onKeyUp={(event) => {
-          if (!isTouchDevice && (event.key === " " || event.key === "Enter")) {
+          if (event.key === " " || event.key === "Enter") {
             event.preventDefault();
             handlePressEnd();
           }
@@ -216,31 +258,30 @@ export function VoiceInput({
         </span>
         <span className="voice-action-copy">
           <strong>
-            {isTouchDevice
-              ? isListening
-                ? "もういちど おすと おわるよ"
-                : "おすと ききはじめる"
-              : isListening
-                ? "はなすと おわるよ…"
-                : "おしている あいだ きいてもらう"}
+            {isListening ? "はなすと おわるよ…" : "おしている あいだ きいてもらう"}
           </strong>
           <span>
-            {isTouchDevice
-              ? "タップして こえを きいてもらおう"
-              : "マイクの ボタンを おして こえを いれてね"}
+            マイクの ボタンを おして こえを いれてね
           </span>
         </span>
       </button>
       <p className="support-text">
         {isSupported
-          ? isTouchDevice
-            ? "タップできくときは 1かい おすと ききはじめて、もういちど おすと けっかを みるよ。"
-            : "ボタンを おしている あいだだけ きくよ。はなしたら けっかを みるよ。"
+          ? "ボタンを おしている あいだだけ きくよ。はなしたら けっかを みるよ。"
           : helperMessage}
       </p>
       <div className="transcript-box">
         <span className="transcript-label">きこえた おと</span>
         <strong>{lastTranscript || "まだ きいていないよ"}</strong>
+      </div>
+      <div className="button-row">
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => resetRecognitionState(true)}
+        >
+          マイクを やりなおす
+        </button>
       </div>
       {lastErrorCode ? <p className="debug-text">状態: {lastErrorCode}</p> : null}
       {errorMessage ? <p className="gentle-alert">{errorMessage}</p> : null}
